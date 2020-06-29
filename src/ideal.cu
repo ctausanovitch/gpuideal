@@ -1204,17 +1204,17 @@ extern "C" void gibbs_ideal_2D(float *x1, float *x2, float *a, float *b1, float 
     }
     
     // Update a's and b's
-    //gibbs_getABs_2D<<<nv_bpg_ab,nv_tpb>>>(d_a, d_b1, d_b2, d_cw_ystar,
-    //                                      d_x1, d_x2, d_iabprior, d_cw_memidx, d_cw_rclen, 
-    //			                  d_cw_rcstart, nn_rc, nn_mem, nn, seed, cntr);
+    gibbs_getABs_2D<<<nv_bpg_ab,nv_tpb>>>(d_a, d_b1, d_b2, d_cw_ystar,
+                                          d_x1, d_x2, d_iabprior, d_cw_memidx, d_cw_rclen, 
+    			                  d_cw_rcstart, nn_rc, nn_mem, nn, seed, cntr);
     CHECKCALL(cudaDeviceSynchronize());
     cntr+=20;
 
     // Update x's
-    //gibbs_getXs_2D<<<nv_bpg_x,nv_tpb>>>(d_x1, d_x2, d_rw_ystar, d_a, d_b1, d_b2,
-    //					d_ixprior, d_rw_rcidx, d_rw_memlen, 
-    //	         	      		d_rw_memstart, nn_mem, nn_rc, seed, cntr);
-    //CHECKCALL(cudaDeviceSynchronize());
+    gibbs_getXs_2D<<<nv_bpg_x,nv_tpb>>>(d_x1, d_x2, d_rw_ystar, d_a, d_b1, d_b2,
+    					d_ixprior, d_rw_rcidx, d_rw_memlen, 
+    	         	      		d_rw_memstart, nn_mem, nn_rc, seed, cntr);
+    CHECKCALL(cudaDeviceSynchronize());
     cntr+=20;
 
     // Update y stars
@@ -1504,12 +1504,12 @@ extern "C" void em_ideal_2D(float *x1, float *x2, float *a, float *b1, float *b2
     CHECKCALL(cudaDeviceSynchronize());
 
     for (int j=0; j<1; j++) {
-    	// Update a's and b's
+    	// DON'T Update a's and b's
 	//Rprintf("Update ABs...\n");
-    	em_getABs_2D<<<nv_bpg_ab,nv_tpb>>>(d_a, d_b1, d_b2, d_cw_ystar, d_x1, d_x2,
-				 d_iabprior, d_cw_memidx, d_cw_rclen, 
-			         d_cw_rcstart, nn_rc, nn_mem, nn);
-    	CHECKCALL(cudaDeviceSynchronize());
+    	//em_getABs_2D<<<nv_bpg_ab,nv_tpb>>>(d_a, d_b1, d_b2, d_cw_ystar, d_x1, d_x2,
+	//			 d_iabprior, d_cw_memidx, d_cw_rclen, 
+	//		         d_cw_rcstart, nn_rc, nn_mem, nn);
+    	//CHECKCALL(cudaDeviceSynchronize());
 
 	//if (check_values(d_b1, nn_rc) > -1) Rprintf("Found in NaN in d_b1 at step %i\n",i);
 	//if (check_values(d_b2, nn_rc) > -1) Rprintf("Found in NaN in d_b2 at step %i\n",i);
