@@ -1204,9 +1204,9 @@ extern "C" void gibbs_ideal_2D(float *x1, float *x2, float *a, float *b1, float 
     }
     
     // Update a's and b's
-    gibbs_getABs_2D<<<nv_bpg_ab,nv_tpb>>>(d_a, d_b1, d_b2, d_cw_ystar,
-                                          d_x1, d_x2, d_iabprior, d_cw_memidx, d_cw_rclen, 
-			                  d_cw_rcstart, nn_rc, nn_mem, nn, seed, cntr);
+    //gibbs_getABs_2D<<<nv_bpg_ab,nv_tpb>>>(d_a, d_b1, d_b2, d_cw_ystar,
+    //                                      d_x1, d_x2, d_iabprior, d_cw_memidx, d_cw_rclen, 
+    //			                  d_cw_rcstart, nn_rc, nn_mem, nn, seed, cntr);
     CHECKCALL(cudaDeviceSynchronize());
     cntr+=20;
 
