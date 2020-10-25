@@ -79,8 +79,8 @@ gpu_em_ideal <- function(rcdata,steps,burnin=0,thin=1,x=NULL,a=NULL,b=NULL,abpri
     res <- .C("em_ideal",
 			# parameters coming back
 			x=as.single(xx),
-			a=single(aa), #steps*nrc/thin
-			b=single(bb),
+			a=as.single(aa), #single(steps*nrc/thin) 10-25-2020
+			b=as.single(bb),
 			
 			# Priors
 			iabprior = as.single(solve(abprior)),
