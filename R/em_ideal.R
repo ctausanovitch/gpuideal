@@ -17,7 +17,7 @@
 #' @useDynLib idealcu
 #'
 #' @examples
-gpu_em_ideal <- function(rcdata,steps,burnin=0,thin=1,x=NULL,abprior=matrix(c(20,0,0,20),2,2),xprior=1,
+gpu_em_ideal <- function(rcdata,steps,burnin=0,thin=1,x=NULL,a=NULL,b=NULL,abprior=matrix(c(20,0,0,20),2,2),xprior=1,
 	             blocks=0, threads=0) {
     # Format the the roll call data
     nmem <- dim(rcdata$votes)[1]
@@ -54,6 +54,17 @@ gpu_em_ideal <- function(rcdata,steps,burnin=0,thin=1,x=NULL,abprior=matrix(c(20
        xx[1:nmem] <- x
     }
 
+    # Include start values for items if provided
+    aa <- rep(0.0,steps*nrc/thin)
+    if (! is.null(a)) {
+       aa[1:nrc] <- a
+    }
+    bb <- rep(0.0,steps*nrc/thin)
+    if (! is.null(b)) {
+       bb[1:nrc] <- b
+    }
+
+
     cat(sprintf("Number of choices:   %i\n", dim(rw)[1]))
 
     # Inverse mills ratio table construction
@@ -68,8 +79,8 @@ gpu_em_ideal <- function(rcdata,steps,burnin=0,thin=1,x=NULL,abprior=matrix(c(20
     res <- .C("em_ideal",
 			# parameters coming back
 			x=as.single(xx),
-			a=single(steps*nrc/thin),
-			b=single(steps*nrc/thin),
+			a=single(aa), #steps*nrc/thin
+			b=single(bb),
 			
 			# Priors
 			iabprior = as.single(solve(abprior)),
