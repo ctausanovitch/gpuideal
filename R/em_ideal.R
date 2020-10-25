@@ -57,11 +57,11 @@ gpu_em_ideal <- function(rcdata,steps,burnin=0,thin=1,x=NULL,a=NULL,b=NULL,abpri
     # Include start values for items if provided
     aa <- rep(0.0,steps*nrc/thin)
     if (! is.null(a)) {
-       aa[1:nrc] <- a
+       aa[1:nrc] <- rep(a,steps/thin)
     }
     bb <- rep(0.0,steps*nrc/thin)
     if (! is.null(b)) {
-       bb[1:nrc] <- b
+       bb[1:nrc] <- rep(b,steps/thin)
     }
 
 
