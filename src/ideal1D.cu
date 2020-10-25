@@ -686,9 +686,9 @@ extern "C" void em_ideal(float *x, float *a, float *b, float *iabprior, float *i
 
     for (int j=0; j<1; j++) {
     	// Update a's and b's
-    	em_getABs<<<nv_bpg_ab,nv_tpb>>>(d_a, d_b, d_cw_ystar, d_x, d_iabprior, d_cw_memidx, d_cw_rclen, 
- 			         d_cw_rcstart, nn_rc, nn_mem, nn);
-    	CHECKCALL(cudaDeviceSynchronize());
+    	//em_getABs<<<nv_bpg_ab,nv_tpb>>>(d_a, d_b, d_cw_ystar, d_x, d_iabprior, d_cw_memidx, d_cw_rclen, 
+ 	//		         d_cw_rcstart, nn_rc, nn_mem, nn);
+    	//CHECKCALL(cudaDeviceSynchronize());
 
 
     	// Update x's
