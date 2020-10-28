@@ -18,6 +18,7 @@
 #'
 #' @examples
 gpu_em_ideal2d <- function(rcdata,steps,burnin=0,thin=1,x1=NULL,x2=NULL,
+			   a=NULL,b1=NULL,b2=NULL,
 			   abprior=diag(rep(25,3)), xprior=diag(2),
 	                   blocks=0, threads=0) {
 
@@ -65,6 +66,20 @@ gpu_em_ideal2d <- function(rcdata,steps,burnin=0,thin=1,x1=NULL,x2=NULL,
     else {
        xx2[1:nmem] <- x2
     }
+	
+    # Include start values for items if provided
+    aa <- rep(0.0,steps*nrc/thin)
+    if (! is.null(a)) {
+       aa <- rep(a,steps/thin)
+    }
+    bb1 <- rep(0.0,steps*nrc/thin)
+    if (! is.null(b1)) {
+       bb1 <- rep(b1,steps/thin)
+    }
+    bb2 <- rep(0.0,steps*nrc/thin)
+    if (! is.null(b2)) {
+       bb2 <- rep(b2,steps/thin)
+    }
 
     cat(sprintf("Number of choices:   %i\n", dim(rw)[1]))
 
@@ -81,9 +96,9 @@ gpu_em_ideal2d <- function(rcdata,steps,burnin=0,thin=1,x1=NULL,x2=NULL,
 			# parameters coming back
 			x1=as.single(xx1),
 			x2=as.single(xx2),
-			a=single(steps*nrc/thin),
-			b1=single(steps*nrc/thin),
-			b2=single(steps*nrc/thin),
+			a=as.single(aa), #steps*nrc/thin
+			b1=as.single(bb1),
+			b2=as.single(bb2),
 			
 			# Priors
 			iabprior = as.single(solve(abprior)),
