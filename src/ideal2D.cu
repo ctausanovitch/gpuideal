@@ -779,10 +779,10 @@ extern "C" void em_ideal_2D(float *x1, float *x2, float *a, float *b1, float *b2
     for (int j=0; j<1; j++) {
     	// Update a's and b's
 	//Rprintf("Update ABs...\n");
-    	em_getABs_2D<<<nv_bpg_ab,nv_tpb>>>(d_a, d_b1, d_b2, d_cw_ystar, d_x1, d_x2,
-				 d_iabprior, d_cw_memidx, d_cw_rclen, 
-			         d_cw_rcstart, nn_rc, nn_mem, nn);
-    	CHECKCALL(cudaDeviceSynchronize());
+    	//em_getABs_2D<<<nv_bpg_ab,nv_tpb>>>(d_a, d_b1, d_b2, d_cw_ystar, d_x1, d_x2,
+	//			 d_iabprior, d_cw_memidx, d_cw_rclen, 
+	//		         d_cw_rcstart, nn_rc, nn_mem, nn);
+    	//CHECKCALL(cudaDeviceSynchronize());
 
 	//if (check_values(d_b1, nn_rc) > -1) Rprintf("Found in NaN in d_b1 at step %i\n",i);
 	//if (check_values(d_b2, nn_rc) > -1) Rprintf("Found in NaN in d_b2 at step %i\n",i);
