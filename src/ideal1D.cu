@@ -560,9 +560,9 @@ __global__ void em_getXs(float *x, float *rw_ystar, float *a, float *b, float *i
 }
 
 //
-// Main call
+// Main call (Nokken Poole version)
 //
-extern "C" void em_ideal(float *x, float *a, float *b, float *iabprior, float *ixprior, 
+extern "C" void em_ideal_np(float *x, float *a, float *b, float *iabprior, float *ixprior, 
 	   int *rw_y, float *rw_ystar, int *rw_rcidx, int *rw_memidx, int *rw_memstart, int *rw_memlen, 
 	   int *cw_y, float * cw_ystar, int *cw_memidx, int *cw_rcstart, int *cw_rclen, int *rw2cw, 
            int *burnin, int *samples, int *n, int *n_rc, int *n_mem, int *thin, int *blocks, int *threads,
@@ -724,3 +724,171 @@ extern "C" void em_ideal(float *x, float *a, float *b, float *iabprior, float *i
   CHECKCALL(cudaFree(d_rw_ystar));
   CHECKCALL(cudaFree(d_im_tbl));
 }
+
+
+//
+// Main call (original version)
+//
+extern "C" void em_ideal(float *x, float *a, float *b, float *iabprior, float *ixprior, 
+	   int *rw_y, float *rw_ystar, int *rw_rcidx, int *rw_memidx, int *rw_memstart, int *rw_memlen, 
+	   int *cw_y, float * cw_ystar, int *cw_memidx, int *cw_rcstart, int *cw_rclen, int *rw2cw, 
+           int *burnin, int *samples, int *n, int *n_rc, int *n_mem, int *thin, int *blocks, int *threads,
+           float *im_tbl, float *im_tbl_min, float *im_tbl_range, int *im_tbl_length) {
+	   
+  int i;
+  int ssamples = *samples;
+  const int nn = *n;
+  const int bburnin = *burnin;
+  const int nn_rc = *n_rc;
+  const int nn_mem = *n_mem;
+  const int tthin = *thin;
+
+  Rprintf("\nNumber of IM table pts %i.\n", *im_tbl_length);
+  Rprintf("Number of IM table min %5.2f.\n", *im_tbl_min);
+  Rprintf("Number of IM table range %5.2f.\n\n", *im_tbl_range);
+  
+    
+  CUDAInfo *infop = cuda_init(getenv("R123_CUDA_DEVICE")); 
+  const int nv_tpb = (*threads) > 0 ? *threads : infop->threads_per_block;
+  const int nv_bpg_ystar = (*blocks) > 0 ? *blocks : infop->blocks_per_grid; 
+  const int nv_bpg_ab = nv_bpg_ystar > nn_rc/nv_tpb ? nn_rc/nv_tpb +1 : nv_bpg_ystar ;
+  const int nv_bpg_x  = nv_bpg_ystar > nn_mem/nv_tpb ? nn_mem/nv_tpb +1 : nv_bpg_ystar ;
+  const int nthreads = nv_bpg_ystar*nv_tpb;
+
+  Rprintf("\nGPU Info...\n");
+  Rprintf("Threads per block:        %i\n", nv_tpb);
+  Rprintf("Max. Blocks per grid:     %i\n", nv_bpg_ystar);  
+  Rprintf("RC blocks:                %i\n", nv_bpg_ab);
+  Rprintf("Member blocks:            %i\n\n", nv_bpg_x);
+
+  Rprintf("Taking %i EM steps (%i per dot)...\n\n", *samples, *samples/50);
+  Rprintf("|-------------------------------------------------|\n|");
+
+  // Allocate device memory
+  float* d_ixprior;
+  CHECKCALL(cudaMalloc(&d_ixprior, sizeof(float) * 1));
+  CHECKCALL(cudaMemcpy(d_ixprior, ixprior, sizeof(float)*1, cudaMemcpyHostToDevice));
+
+  float* d_iabprior;
+  CHECKCALL(cudaMalloc(&d_iabprior, sizeof(float) * 4));
+  CHECKCALL(cudaMemcpy(d_iabprior, iabprior, sizeof(float)*4, cudaMemcpyHostToDevice));
+
+  int* d_cw_rclen;
+  CHECKCALL(cudaMalloc(&d_cw_rclen, sizeof(int) * nn_rc));
+  CHECKCALL(cudaMemcpy(d_cw_rclen, cw_rclen, sizeof(int)*nn_rc, cudaMemcpyHostToDevice));
+
+  int* d_cw_rcstart;
+  CHECKCALL(cudaMalloc(&d_cw_rcstart, sizeof(int) * nn_rc));
+  CHECKCALL(cudaMemcpy(d_cw_rcstart, cw_rcstart, sizeof(int)*nn_rc, cudaMemcpyHostToDevice));
+
+  int* d_cw_memidx;
+  CHECKCALL(cudaMalloc(&d_cw_memidx, sizeof(int) * nn));
+  CHECKCALL(cudaMemcpy(d_cw_memidx, cw_memidx, sizeof(int)* (nn), cudaMemcpyHostToDevice));
+
+  int* d_rw_memidx;
+  CHECKCALL(cudaMalloc(&d_rw_memidx, sizeof(int) * nn));
+  CHECKCALL(cudaMemcpy(d_rw_memidx, rw_memidx, sizeof(int)* (nn), cudaMemcpyHostToDevice));
+
+  int* d_rw_memstart;
+  CHECKCALL(cudaMalloc(&d_rw_memstart, sizeof(int) * nn_mem));
+  CHECKCALL(cudaMemcpy(d_rw_memstart, rw_memstart, sizeof(int)* (nn_mem), cudaMemcpyHostToDevice));
+
+  int* d_rw_memlen;
+  CHECKCALL(cudaMalloc(&d_rw_memlen, sizeof(int) * nn_mem));
+  CHECKCALL(cudaMemcpy(d_rw_memlen, rw_memlen, sizeof(int)* (nn_mem), cudaMemcpyHostToDevice));
+
+  int* d_rw_rcidx;
+  CHECKCALL(cudaMalloc(&d_rw_rcidx, sizeof(int) * nn));
+  CHECKCALL(cudaMemcpy(d_rw_rcidx, rw_rcidx, sizeof(int)* (nn), cudaMemcpyHostToDevice));
+
+  float* d_a;
+  CHECKCALL(cudaMalloc(&d_a, sizeof(float) * nn_rc));
+  CHECKCALL(cudaMemcpy(d_a, a, sizeof(float) * nn_rc, cudaMemcpyHostToDevice));
+
+  float* d_b;
+  CHECKCALL(cudaMalloc(&d_b, sizeof(float)* nn_rc));
+  CHECKCALL(cudaMemcpy(d_b, b, sizeof(float) * nn_rc, cudaMemcpyHostToDevice));
+
+  float* d_x;
+  CHECKCALL(cudaMalloc(&d_x, sizeof(float) * nn_mem));
+  CHECKCALL(cudaMemcpy(d_x, x, sizeof(float) * nn_mem, cudaMemcpyHostToDevice));
+
+  int* d_rw_y;
+  CHECKCALL(cudaMalloc(&d_rw_y, sizeof(int) * nn));
+  CHECKCALL(cudaMemcpy(d_rw_y, rw_y, sizeof(int)* (nn), cudaMemcpyHostToDevice));
+
+  int* d_rw2cw;
+  CHECKCALL(cudaMalloc(&d_rw2cw, sizeof(int) * nn));
+  CHECKCALL(cudaMemcpy(d_rw2cw, rw2cw, sizeof(int)* (nn), cudaMemcpyHostToDevice));
+
+  float* d_rw_ystar;
+  CHECKCALL(cudaMalloc(&d_rw_ystar, sizeof(float) * nn));
+  CHECKCALL(cudaMemcpy(d_rw_ystar, rw_ystar, sizeof(float)* nn, cudaMemcpyHostToDevice));
+
+  float* d_cw_ystar;
+  CHECKCALL(cudaMalloc(&d_cw_ystar, sizeof(float) * nn));
+  CHECKCALL(cudaMemcpy(d_cw_ystar, cw_ystar, sizeof(float)* nn, cudaMemcpyHostToDevice));
+
+  // value of inverse mills table for lookup
+  float* d_im_tbl;
+  CHECKCALL(cudaMalloc(&d_im_tbl, sizeof(float) * (*im_tbl_length)));
+  CHECKCALL(cudaMemcpy(d_im_tbl, im_tbl, sizeof(float)* (*im_tbl_length), cudaMemcpyHostToDevice));
+
+
+  // grab the current time for use as a seed in device random numbers
+  struct timeval tv;
+  gettimeofday(&tv,NULL);
+  int seed = tv.tv_usec;
+
+  for (i=1;i<ssamples;i++) {
+    if (i % (ssamples/50) == 0) Rprintf("s");
+
+    // Update y stars
+    em_getYstar<<<nv_bpg_ystar,nv_tpb>>>(d_rw_rcidx, d_rw_memidx, d_a, d_b, d_x, d_rw_y, d_cw_ystar,
+  			  	      d_rw_ystar, d_rw2cw, seed, nn/nthreads+1,nn); 
+//  em_getYstar_lookup<<<nv_bpg_ystar,nv_tpb>>>(d_rw_rcidx, d_rw_memidx, d_a, d_b, d_x, d_rw_y, d_cw_ystar,
+//			  	      d_rw_ystar, d_rw2cw, seed, nn/nthreads+1, nn,
+//  				      d_im_tbl, *im_tbl_min, *im_tbl_range, *im_tbl_length); 
+    CHECKCALL(cudaDeviceSynchronize());
+
+    for (int j=0; j<1; j++) {
+    	// Update a's and b's
+    	em_getABs<<<nv_bpg_ab,nv_tpb>>>(d_a, d_b, d_cw_ystar, d_x, d_iabprior, d_cw_memidx, d_cw_rclen, 
+ 			         d_cw_rcstart, nn_rc, nn_mem, nn);
+    	CHECKCALL(cudaDeviceSynchronize());
+
+
+    	// Update x's
+     	em_getXs<<<nv_bpg_x,nv_tpb>>>(d_x, d_rw_ystar, d_a, d_b, d_ixprior, d_rw_rcidx, d_rw_memlen, 
+	         	       d_rw_memstart, nn_mem, nn_rc);
+        CHECKCALL(cudaDeviceSynchronize());
+    }
+
+
+    if (i > bburnin & (i - bburnin) % tthin == 0) {
+       a += nn_rc; b += nn_rc; x += nn_mem;
+       CHECKCALL(cudaMemcpy(a, d_a, sizeof(float) * nn_rc, cudaMemcpyDeviceToHost));
+       CHECKCALL(cudaMemcpy(b, d_b, sizeof(float) * nn_rc, cudaMemcpyDeviceToHost));
+       CHECKCALL(cudaMemcpy(x, d_x, sizeof(float) * nn_mem, cudaMemcpyDeviceToHost));     
+    }
+  }
+
+  // Free malloc'ed memory
+  CHECKCALL(cudaFree(d_ixprior));
+  CHECKCALL(cudaFree(d_iabprior));
+  CHECKCALL(cudaFree(d_a));
+  CHECKCALL(cudaFree(d_b));
+  CHECKCALL(cudaFree(d_x));
+  CHECKCALL(cudaFree(d_cw_rclen));
+  CHECKCALL(cudaFree(d_cw_rcstart));
+  CHECKCALL(cudaFree(d_cw_memidx));
+  CHECKCALL(cudaFree(d_rw_rcidx));
+  CHECKCALL(cudaFree(d_rw_memidx));
+  CHECKCALL(cudaFree(d_rw_memstart));
+  CHECKCALL(cudaFree(d_rw_y));
+  CHECKCALL(cudaFree(d_rw2cw));
+  CHECKCALL(cudaFree(d_cw_ystar));
+  CHECKCALL(cudaFree(d_rw_ystar));
+  CHECKCALL(cudaFree(d_im_tbl));
+}
+
