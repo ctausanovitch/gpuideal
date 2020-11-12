@@ -136,9 +136,9 @@ gpu_em_ideal_np <- function(rcdata,steps,burnin=0,thin=1,x=NULL,a=NULL,b=NULL,ab
     res
 }
 
-#' Run the EM ideal estimator on the GPU
+#' Run the EM ideal estimator on the GPU (TESTING)
 #'
-#' Run the EM ideal estimator on the GPU
+#' Run the EM ideal estimator on the GPU (TESTING)
 #' @param rcdata Roll call object
 #' @param steps Number of MCMC step
 #' @param thin Keep every `thin` step
