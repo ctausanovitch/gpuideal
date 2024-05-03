@@ -1,5 +1,5 @@
 # gpuideal
-## R package implementing MCMC estimation of the two-parameter IRT model on NVIDIA GPUs
+# THIS IS AN EXPERIMENTAL FORK OF GPUIDEAL. PLEASE SEE https://github.com/JeffreyBLewis/gpuideal FOR THE LATEST VERSION.
 
 ## News
 We pushed a new version of the code on July 11, 2019. I have confirmed the EC2 install and run instructions below function as of August 19, 2019.  Please let me know if you run into trouble.  Several users have asked about installing this package under Windows.  At the moment, installing under windows will require you to build the CUDA source for the shared library manually or writing your own Makefile or configure script. If you write a build script for Windows please make a pull request.  **While this code has been tested extensively, this package remains experimental**.
